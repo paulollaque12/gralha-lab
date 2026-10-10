@@ -923,9 +923,11 @@ function v2ToSp(v){
  Object.keys(v.filtros||{}).forEach(d=>{if(!ENT[d]||!(v.filtros[d]||[]).length)return;const r=resolver(d,v.filtros[d]);r.ach.forEach(o=>{(F[d]=F[d]||new Set()).add(o.i);found.push([d,o.n])});falt.push(...r.falt.map(n=>d+" "+n))});
  if(falt.length)return{recusa:"Não encontrei nos dados: "+falt.join(", ")+"."};
  const sp={met,ent,F,found,assum:[],per,prev,dir:null,asc:v.ordem==="asc",top:v.top||(v.modo==="ranking"?10:10),min:v.minimo||0,ia:true,entendi:v.entendi||"",raw:""};
- const needEnt=["ranking","contagem","lista","variacao","conjunto"].includes(v.modo);
+ const modo=(v.modo==="variacao"&&!ent)?"total":v.modo; /* comparar dois períodos sem agrupar = total com variação */
+ if(modo==="total"&&v.modo==="variacao"&&!prev)throw new Error("faltou o período de comparação");
+ const needEnt=["ranking","contagem","lista","variacao","conjunto"].includes(modo);
  if(needEnt&&!ent)return{recusa:"Essa pergunta precisa de uma dimensão (corretor, equipe, loja...). Diga por qual quer ver."};
- switch(v.modo){
+ switch(modo){
   case"total":sp.modo="total";break;
   case"ranking":sp.modo="rank";break;
   case"contagem":sp.modo="count";break;
