@@ -6,5 +6,8 @@ subprocess.run([sys.executable, os.path.join(R, "tools", "build_estatico.py"), o
                 "--site", os.path.join(R, "docs", "index.html"), "--enc", os.path.join(R, "docs", "data.enc.json")], check=True)
 p = os.path.join(R, "docs", "index.html"); h = open(p, encoding="utf-8").read()
 assert h.count("</body>") == 1
-h = h.replace("</body>", "<script>\n" + open(os.path.join(R, "tools", "ask.js"), encoding="utf-8").read() + "\n</script>\n</body>")
+ep = os.path.join(R, "tools", "endpoint.txt")
+endpoint = open(ep).read().strip() if os.path.exists(ep) else ""
+js = open(os.path.join(R, "tools", "ask.js"), encoding="utf-8").read().replace("__ASK_ENDPOINT__", endpoint)
+h = h.replace("</body>", "<script>\n" + js + "\n</script>\n</body>")
 open(p, "w", encoding="utf-8").write(h); print("ok", len(h))
