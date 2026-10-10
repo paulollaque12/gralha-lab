@@ -802,6 +802,14 @@ function interpretar(raw){
  if(met===null){met=5;assum.push("métrica: vendas")}
  const rankMais=/\b(mais|maior(?:es)?|melhor(?:es)?|lider|top\s*\d*|ranking)\b/.test(q),rankMenos=/\b(menos|menor(?:es)?|pior(?:es)?)\b/.test(q);
  if(!ent&&(dir||rankMais||rankMenos)){ent="corretor";assum.push("por corretor")}
+ const ng=/\b(nao|sem|nenhum|nenhuma|zero|nunca)\b/.exec(q);
+ if(ng){ // "teve em A e nao teve em B" (ou o inverso)
+  const L=q.slice(0,ng.index),Rr=q.slice(ng.index+ng[0].length);let had=null,none=null;
+  if(ent&&met!==null||ent){had=periodo(L);none=periodo(Rr);
+   if(!had&&none){const parts=Rr.split(/\b(?:mas|e|porem|que)\b/);const n1=periodo(parts[0]),h1=parts.length>1?periodo(parts.slice(1).join(" ")):null;if(n1&&h1){none=n1;had=h1}else{had=null}}}
+  const{F:F2,found:f2}=filtros(q);
+  if(ent&&had&&none)return{modo:"lost",met,ent,per:had,prev:none,F:F2,found:f2,assum,raw,dir:null};
+  return{modo:"nao_entendi",motivo:"negacao",raw}}
  const cmp=q.split(/\b(?:vs\.?|versus|contra|comparad[oa]s? (?:com|ao|a)|em relacao (?:a|ao)|comparando com)\b/);
  let per=periodo(cmp[0]),prev=null,pAssum=false;
  if(!per){per=periodo(q);}
@@ -831,6 +839,7 @@ const nm=(sp,k)=>{const n=C.dict[sp.ent][k];return n||"(sem "+ENT[sp.ent].s+")"}
 const V=(sp,v)=>sp.met==="vgv"?fmtV(v):fmt(v);
 
 function calcular(sp){
+ if(sp.modo==="lost"){const A=agg(sp,sp.per.a,sp.per.b),B=agg(sp,sp.prev.a,sp.prev.b),rows=[];A.map.forEach((v,k)=>{if(v>0&&!(B.map.get(k)>0))rows.push({k,n:nm(sp,k),c:v,p:0,d:v})});return{A,B,rows}}
  const A=agg(sp,sp.per.a,sp.per.b),B=sp.prev?agg(sp,sp.prev.a,sp.prev.b):{map:new Map(),total:0};
  const rows=[];if(sp.ent){const ks=new Set([...A.map.keys(),...B.map.keys()]);ks.forEach(k=>{const c=A.map.get(k)||0,p=B.map.get(k)||0;rows.push({k,n:nm(sp,k),c,p,d:c-p})})}
  return{A,B,rows}}
@@ -849,7 +858,11 @@ function chips(sp){
  sp.found.forEach(([d,n])=>c.push("filtro: "+n));
  if(sp.dir)c.push(sp.dir==="up"?"só quem aumentou":"só quem diminuiu");
  return '<div class="achips">Entendi assim: '+c.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(sp.assum.length?'<div class="amut">Assumi: '+esc(sp.assum.join(" · "))+".</div>":"")}
+function tab2(sp,rs,h1,h2){const lim=15;let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+"</th><th>"+esc(h1)+"</th><th>"+esc(h2)+"</th></tr></thead><tbody>";rs.slice(0,lim).forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td><td>0</td></tr>"});h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+" na lista.</div>";return h}
 function responder(sp){
+ if(sp.modo==="lost"){const R=calcular(sp),E=ENT[sp.ent],ml=METL[sp.met],rs=R.rows.sort((x,y)=>y.c-x.c||(x.n<y.n?-1:1)),tA=[...R.A.map.values()].filter(v=>v>0).length;
+  const chp=[METN[sp.met]+(sp.met==="vgv"?"":" (clientes únicos)"),"por "+E.s,"com "+ml+" em: "+sp.per.rot,"sem "+ml+" em: "+sp.prev.rot];sp.found.forEach(([d,n])=>chp.push("filtro: "+n));
+  return'<div class="abig">'+fmt(rs.length)+'</div><div class="asub">'+E.p+" com "+ml+" em "+esc(sp.per.rot)+" e sem nenhum em "+esc(sp.prev.rot)+" · de "+tA+" "+E.p+" com "+ml+" no primeiro período</div>"+'<div class="achips">Entendi assim: '+chp.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(rs.length?tab2(sp,rs,"Primeiro período","Segundo período"):"")}
  const R=calcular(sp);let h="",big="",sub="";const ml=METL[sp.met],E=sp.ent?ENT[sp.ent]:null;
  if(sp.modo==="total"){const c=R.A.total,p=R.B.total,d=c-p;big=V(sp,c);sub=ml+" no período"+(sp.prev?" · "+(p||c?(d>0?"+":"")+V(sp,d)+" ("+pct(c,p)+") vs. "+V(sp,p)+" no período anterior":"sem movimento nos períodos"):"")}
  else if(sp.modo==="movers"){
@@ -895,6 +908,7 @@ function ui(){
 function run(t){
  const r=document.getElementById("askr");r.hidden=false;
  try{const sp=interpretar(t);
+  if(sp&&sp.modo==="nao_entendi"){r.innerHTML='<div class="asub">Entendi que há uma condição de negação ("não", "sem"), mas não consegui ler os dois períodos. Tente: "quantos corretores tiveram vendas mês passado e não têm este mês?" (com os dois períodos explícitos).</div>';return}
   if(!sp||(!sp.ent&&metrica(norm(t))===null&&!periodo(norm(t))&&!/\b(total|quanto|quantas|quantos)\b/.test(norm(t)))){r.innerHTML='<div class="asub">Não consegui entender essa pergunta. Tente algo como as sugestões acima: diga a métrica (vendas, visitas, agenciamentos...), o período (últimos 7 dias, este mês, setembro...) e, se quiser, por corretor, equipe ou loja.</div>';return}
   r.innerHTML=responder(sp)}
  catch(e){console.error(e);r.innerHTML='<div class="asub">Não consegui calcular essa pergunta ('+esc(e.message||e)+').</div>'}}
