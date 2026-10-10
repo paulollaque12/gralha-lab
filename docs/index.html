@@ -743,7 +743,7 @@ const METL={0:"leads",1:"oportunidades",2:"visitas",3:"propostas",4:"fechamentos
 const ENT={corretor:{col:5,s:"corretor",p:"corretores",g:"o"},equipe:{col:4,s:"equipe",p:"equipes",g:"a"},loja:{col:3,s:"loja",p:"lojas",g:"a"},veiculo:{col:6,s:"veículo",p:"veículos",g:"o"},bairro:{col:7,s:"bairro",p:"bairros",g:"o"}};
 const MESES=["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"],MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 let C=null,ULT=0,NAMES=null;
-const ENDPOINT=(v=>v.startsWith("__")?"":v)("");
+const ENDPOINT=(v=>v.startsWith("__")?"":v)("https://gralha-ask.paulo-cb2.workers.dev/");
 
 /* ---------- interpretação ---------- */
 function metrica(q){
