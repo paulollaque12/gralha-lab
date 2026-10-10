@@ -17,6 +17,7 @@ const ENT={corretor:{col:5,s:"corretor",p:"corretores",g:"o"},equipe:{col:4,s:"e
 const MESES=["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"],MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 let C=null,ULT=0,NAMES=null;
 const ENDPOINT=(v=>v.startsWith("__")?"":v)("__ASK_ENDPOINT__");
+const NAME=(v=>v.startsWith("__")?"Assistente":v)("__ASK_NAME__");
 
 /* ---------- interpretação ---------- */
 function metrica(q){
@@ -149,7 +150,7 @@ function responder(sp){
   const fr=n?fmt(n)+" "+art(E,n)+(n===1?" teve ":" tiveram ")+ml+meio+": "+esc(quem(sp,rs,6))+".":"Nenhum"+(E.g==="a"?"a ":" ")+E.s+" teve "+ml+meio+".";
   return'<div class="abig">'+fmt(n)+'</div><div class="asub">'+fr+'</div><div class="amut" style="margin:-6px 0 12px">De '+tA+" "+E.p+" com "+ml+" "+esc(emp(sp.per.rot))+".</div>"+(sp.ia&&sp.entendi?'<div class="amut" style="margin:-6px 0 12px">'+esc(sp.entendi)+"</div>":"")+'<div class="achips">Entendi assim: '+chp.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(n?tab2(sp,rs,curto(sp.per.rot),curto(sp.prev.rot)):"")}
  const R=calcular(sp);let h="",big="",sub="";const ml=METL[sp.met],E=sp.ent?ENT[sp.ent]:null;
- if(sp.modo==="total"){const c=R.A.total,p=R.B.total,d=c-p;big=V(sp,c);sub="Foram "+V(sp,c)+" "+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+(sp.prev?(p||c?", "+(d>0?"+":"")+V(sp,d)+" ("+pct(c,p)+") em relação a "+V(sp,p)+" em "+esc(curto(sp.prev.rot)):", sem movimento nos dois períodos"):"")+"."}
+ if(sp.modo==="total"){const c=R.A.total,p=R.B.total,d=c-p;big=V(sp,c);sub="Foram "+V(sp,c)+" "+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+(sp.prev?(p||c?", "+(d>0?"+":"")+V(sp,d)+" ("+pct(c,p)+") em relação a "+V(sp,p)+" "+esc(emp(sp.prev.rot)):", sem movimento nos dois períodos"):"")+"."}
  else if(sp.modo==="movers"){
   const pop=R.rows.filter(r=>r.c>0||r.p>0),mv=pop.filter(r=>sp.dir==="up"?r.c>r.p:r.c<r.p).sort((x,y)=>sp.dir==="up"?y.d-x.d||y.c-x.c:x.d-y.d||y.p-x.p),ig=pop.filter(r=>r.c===r.p).length,op=pop.filter(r=>sp.dir==="up"?r.c<r.p:r.c>r.p).length;
   big=fmt(mv.length);sub=(mv.length?fmt(mv.length)+" "+art(E,mv.length)+" "+(sp.dir==="up"?(mv.length===1?"aumentou":"aumentaram"):(mv.length===1?"diminuiu":"diminuíram"))+" "+ml+" "+esc(emp(sp.per.rot))+" em relação a "+esc(curto(sp.prev.rot))+esc(filt(sp))+": "+esc(mv.slice(0,6).map(r=>r.n+" ("+(r.d>0?"+":"")+V(sp,r.d)+")").join(", "))+(mv.length>6?" e mais "+(mv.length-6):"")+".":"Nenhum"+(E.g==="a"?"a ":" ")+E.s+" "+(sp.dir==="up"?"aumentou":"diminuiu")+" "+ml+" "+esc(emp(sp.per.rot))+" em relação a "+esc(curto(sp.prev.rot))+esc(filt(sp))+".")+'<div class="amut" style="margin-top:6px">De '+pop.length+" "+E.p+" com "+ml+" em algum dos dois períodos: "+ig+" ficaram iguais e "+op+" "+(sp.dir==="up"?"caíram":"subiram")+".</div>";
@@ -215,7 +216,7 @@ function v2ToSp(v){
 /* ---------- interface ---------- */
 const EX=["Quantos corretores aumentaram vendas nos últimos 7 dias?","Quais equipes mais venderam este mês?","Quantos agenciamentos tivemos em setembro?","Quais corretores diminuíram visitas esta semana?","Qual veículo trouxe mais vendas este ano?","Vendas da equipe Meta este mês vs. mês passado"];
 function css(){const s=document.createElement("style");s.textContent=`
-#ask{margin:0 0 18px;padding:16px 20px 18px}
+#ask{margin:0;padding:16px 20px 18px}
 #ask h2{margin:0 0 4px;font-size:15px;color:var(--ink)}#ask .beta{font-size:8px}
 #ask .asb{margin:0 0 12px;color:var(--mut);font-size:13px;line-height:1.5}
 #ask form{display:flex;gap:10px}#ask input[type=text]{flex:1;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:inherit;font-size:14px;background:var(--sf);color:var(--ink)}
@@ -233,10 +234,11 @@ function css(){const s=document.createElement("style");s.textContent=`
 #ask .amut{color:var(--mut);font-size:12px;margin-top:8px}
 @media(max-width:600px){#ask{padding:14px}#ask form{flex-direction:column}}`;document.head.appendChild(s)}
 function ui(){
- const nav=document.querySelector(".tabs");if(!nav||document.getElementById("ask"))return;css();
+ const root=document.getElementById("askroot"),nav=document.querySelector(".tabs");if(document.getElementById("ask")||(!root&&!nav))return;css();
  const d=document.createElement("div");d.id="ask";d.className="panel";
- d.innerHTML='<h2>Pergunte aos dados<span class="beta">BETA</span></h2><p class="asb">Escreva uma pergunta em português sobre o funil, vendas, agenciamentos ou placas. A resposta é calculada nos dados do próprio dashboard e mostra como a pergunta foi entendida.</p><form id="askf" autocomplete="off"><input type="text" id="askq" aria-label="Pergunta" placeholder="Carregando dados..." disabled><button class="gh" type="submit" id="askb" disabled>Perguntar</button></form><div class="ex" id="askex"></div><div class="res" id="askr" hidden aria-live="polite"></div>';
- nav.parentNode.insertBefore(d,nav);
+ d.innerHTML='<h2>'+esc(NAME)+'<span class="beta">BETA</span></h2><p class="asb">Pergunte em português sobre o funil, vendas, agenciamentos ou placas. A resposta é calculada nos dados do próprio dashboard e mostra como a pergunta foi entendida.</p><form id="askf" autocomplete="off"><input type="text" id="askq" aria-label="Pergunta" placeholder="Carregando dados..." disabled><button class="gh" type="submit" id="askb" disabled>Perguntar</button></form><div class="ex" id="askex"></div><div class="res" id="askr" hidden aria-live="polite"></div>';
+ if(root)root.appendChild(d);else nav.parentNode.insertBefore(d,nav);
+ const tb=document.getElementById("tab-ask");if(tb)tb.addEventListener("click",()=>{const h=document.getElementById("hctl"),g=document.getElementById("gfb");if(h)h.hidden=true;if(g)g.hidden=true});
  const ex=document.getElementById("askex");EX.forEach(t=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.onclick=()=>{document.getElementById("askq").value=t;run(t)};ex.appendChild(b)});
  document.getElementById("askf").onsubmit=e=>{e.preventDefault();run(document.getElementById("askq").value)}}
 let seq=0;
