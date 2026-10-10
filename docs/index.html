@@ -850,7 +850,7 @@ const pct=(c,p)=>p>0?((c-p)/p*100>0?"+":"")+Math.round((c-p)/p*100)+"%":c>0?"nov
 const cls=d=>d>0?"pos":d<0?"neg":"";
 function tabela(sp,rs,hide){
  const lim=15,show=rs.slice(0,lim),np=!sp.prev||hide;
- let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+'</th><th>'+(np?esc(curto(sp.per.rot)):"Atual")+'</th>'+(np?"":"<th>Anterior</th><th>Variação</th>")+'</tr></thead><tbody>';
+ let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+'</th><th>'+hd(sp.per)+'</th>'+(np?"":"<th>"+hd(sp.prev)+"</th><th>Variação</th>")+'</tr></thead><tbody>';
  show.forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td>"+(np?"":"<td>"+V(sp,r.p)+'</td><td class="'+cls(r.d)+'">'+(r.d>0?"+":"")+V(sp,r.d)+" · "+pct(r.c,r.p)+"</td>")+"</tr>"});
  h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+' na lista.</div>';return h}
 function chips(sp){
@@ -859,7 +859,7 @@ function chips(sp){
  sp.found.forEach(([d,n])=>c.push("filtro: "+n));
  if(sp.dir)c.push(sp.dir==="up"?"só quem aumentou":"só quem diminuiu");
  return '<div class="achips">Entendi assim: '+c.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(sp.ia&&sp.entendi?'<div class="amut">'+esc(sp.entendi)+"</div>":"")+(sp.assum.length?'<div class="amut">Assumi: '+esc(sp.assum.join(" · "))+".</div>":"")}
-function tab2(sp,rs,h1,h2){const lim=15;let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+"</th><th>"+esc(h1)+"</th><th>"+esc(h2)+"</th></tr></thead><tbody>";rs.slice(0,lim).forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td><td>"+V(sp,r.p)+"</td></tr>"});h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+" na lista.</div>";return h}
+function tab2(sp,rs,h1,h2){const lim=15;let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+"</th><th>"+hd(sp.per)+"</th><th>"+hd(sp.prev)+"</th></tr></thead><tbody>";rs.slice(0,lim).forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td><td>"+V(sp,r.p)+"</td></tr>"});h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+" na lista.</div>";return h}
 const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
 const emp=r=>{r=String(r).replace(/\s*\(.*\)\s*$/,"");
  if(/^últimos/i.test(r))return"nos "+r;if(/^esta semana/i.test(r))return"nesta semana";if(/^este mês/i.test(r))return"neste mês";
@@ -867,6 +867,7 @@ const emp=r=>{r=String(r).replace(/\s*\(.*\)\s*$/,"");
 const curto=r=>String(r).replace(/\s*\(.*\)\s*$/,"");
 const filt=sp=>sp.found.length?" (filtro: "+[...new Set(sp.found.map(f=>f[1]))].join(", ")+")":"";
 const quem=(sp,rs,n)=>rs.slice(0,n).map(r=>r.n+" ("+V(sp,r.c)+")").join(", ")+(rs.length>n?" e mais "+(rs.length-n):"");
+const hd=p=>esc(cap(curto(p.rot)))+'<span class="ad">'+br(p.a)+(p.a===p.b?"":" a "+br(p.b))+"</span>";
 const art=(E,n)=>n===1?E.s:E.p;
 function responder(sp){
  if(sp.modo==="lost"||sp.modo==="both"){const R=calcular(sp),E=ENT[sp.ent],ml=METL[sp.met],rs=R.rows.sort((x,y)=>y.c-x.c||(x.n<y.n?-1:1)),tA=[...R.A.map.values()].filter(v=>v>0).length,bo=sp.modo==="both",n=rs.length;
@@ -955,6 +956,7 @@ function css(){const s=document.createElement("style");s.textContent=`
 #ask .at td{padding:7px 10px;border-bottom:1px solid var(--line);color:var(--ink)}#ask .at td.pos,#ask .at td.neg{background:none}#ask .at td.pos{color:var(--pos);font-weight:600}#ask .at td.neg{color:var(--neg);font-weight:600}
 #ask .at th:not(:first-child),#ask .at td:not(:first-child){text-align:right;white-space:nowrap}
 #ask .achips{margin:0 0 14px;color:var(--mut);font-size:12px;line-height:2}#ask .achips span{display:inline-block;margin:0 6px 0 0;padding:1px 9px;border-radius:999px;background:var(--tr);color:var(--nv)}
+#ask .at th .ad{display:block;font-weight:400;font-size:11px;opacity:.85;margin-top:1px}
 #ask .amut{color:var(--mut);font-size:12px;margin-top:8px}
 @media(max-width:600px){#ask{padding:14px}#ask form{flex-direction:column}}`;document.head.appendChild(s)}
 function ui(){
