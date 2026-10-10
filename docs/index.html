@@ -848,9 +848,9 @@ function calcular(sp){
 /* ---------- apresentação ---------- */
 const pct=(c,p)=>p>0?((c-p)/p*100>0?"+":"")+Math.round((c-p)/p*100)+"%":c>0?"novo":"—";
 const cls=d=>d>0?"pos":d<0?"neg":"";
-function tabela(sp,rs,cols){
- const lim=15,show=rs.slice(0,lim),np=!sp.prev;
- let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+'</th><th>Atual</th>'+(np?"":"<th>Anterior</th><th>Variação</th>")+'</tr></thead><tbody>';
+function tabela(sp,rs,hide){
+ const lim=15,show=rs.slice(0,lim),np=!sp.prev||hide;
+ let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+'</th><th>'+(np?esc(curto(sp.per.rot)):"Atual")+'</th>'+(np?"":"<th>Anterior</th><th>Variação</th>")+'</tr></thead><tbody>';
  show.forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td>"+(np?"":"<td>"+V(sp,r.p)+'</td><td class="'+cls(r.d)+'">'+(r.d>0?"+":"")+V(sp,r.d)+" · "+pct(r.c,r.p)+"</td>")+"</tr>"});
  h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+' na lista.</div>';return h}
 function chips(sp){
@@ -860,23 +860,33 @@ function chips(sp){
  if(sp.dir)c.push(sp.dir==="up"?"só quem aumentou":"só quem diminuiu");
  return '<div class="achips">Entendi assim: '+c.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(sp.ia&&sp.entendi?'<div class="amut">'+esc(sp.entendi)+"</div>":"")+(sp.assum.length?'<div class="amut">Assumi: '+esc(sp.assum.join(" · "))+".</div>":"")}
 function tab2(sp,rs,h1,h2){const lim=15;let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+"</th><th>"+esc(h1)+"</th><th>"+esc(h2)+"</th></tr></thead><tbody>";rs.slice(0,lim).forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td><td>"+V(sp,r.p)+"</td></tr>"});h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+" na lista.</div>";return h}
+const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+const emp=r=>{r=String(r).replace(/\s*\(.*\)\s*$/,"");
+ if(/^últimos/i.test(r))return"nos "+r;if(/^esta semana/i.test(r))return"nesta semana";if(/^este mês/i.test(r))return"neste mês";
+ if(/^(mês|ano)\b/i.test(r))return"no "+r;if(/^semana\b/i.test(r))return"na "+r;if(/^dia\b/i.test(r))return"no "+r;if(/^[0-9]/.test(r))return"em "+r;return"em "+r};
+const curto=r=>String(r).replace(/\s*\(.*\)\s*$/,"");
+const filt=sp=>sp.found.length?" (filtro: "+[...new Set(sp.found.map(f=>f[1]))].join(", ")+")":"";
+const quem=(sp,rs,n)=>rs.slice(0,n).map(r=>r.n+" ("+V(sp,r.c)+")").join(", ")+(rs.length>n?" e mais "+(rs.length-n):"");
+const art=(E,n)=>n===1?E.s:E.p;
 function responder(sp){
- if(sp.modo==="lost"||sp.modo==="both"){const R=calcular(sp),E=ENT[sp.ent],ml=METL[sp.met],rs=R.rows.sort((x,y)=>y.c-x.c||(x.n<y.n?-1:1)),tA=[...R.A.map.values()].filter(v=>v>0).length,bo=sp.modo==="both";
-  const chp=[METN[sp.met]+(sp.met==="vgv"?"":" (clientes únicos)"),"por "+E.s,"com "+ml+" em: "+sp.per.rot,(bo?"e com ":"sem ")+ml+" em: "+sp.prev.rot];if(sp.ia)chp.unshift("IA");sp.found.forEach(([d,n])=>chp.push("filtro: "+n));
-  return'<div class="abig">'+fmt(rs.length)+'</div><div class="asub">'+E.p+" com "+ml+" em "+esc(sp.per.rot)+(bo?" e também em ":" e sem nenhum em ")+esc(sp.prev.rot)+" · de "+tA+" "+E.p+" com "+ml+" no primeiro período</div>"+'<div class="achips">Entendi assim: '+chp.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(rs.length?tab2(sp,rs,"Primeiro período","Segundo período"):"")}
+ if(sp.modo==="lost"||sp.modo==="both"){const R=calcular(sp),E=ENT[sp.ent],ml=METL[sp.met],rs=R.rows.sort((x,y)=>y.c-x.c||(x.n<y.n?-1:1)),tA=[...R.A.map.values()].filter(v=>v>0).length,bo=sp.modo==="both",n=rs.length;
+  const chp=[METN[sp.met]+(sp.met==="vgv"?"":" (clientes únicos)"),"por "+E.s,"com "+ml+" em: "+sp.per.rot,(bo?"e com ":"sem ")+ml+" em: "+sp.prev.rot];if(sp.ia)chp.unshift("IA");sp.found.forEach(([d,nn])=>chp.push("filtro: "+nn));
+  const meio=" "+emp(sp.per.rot)+(bo?" e também ":" e nenhuma ")+emp(sp.prev.rot)+filt(sp);
+  const fr=n?fmt(n)+" "+art(E,n)+(n===1?" teve ":" tiveram ")+ml+meio+": "+esc(quem(sp,rs,6))+".":"Nenhum"+(E.g==="a"?"a ":" ")+E.s+" teve "+ml+meio+".";
+  return'<div class="abig">'+fmt(n)+'</div><div class="asub">'+fr+'</div><div class="amut" style="margin:-6px 0 12px">De '+tA+" "+E.p+" com "+ml+" "+esc(emp(sp.per.rot))+".</div>"+(sp.ia&&sp.entendi?'<div class="amut" style="margin:-6px 0 12px">'+esc(sp.entendi)+"</div>":"")+'<div class="achips">Entendi assim: '+chp.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(n?tab2(sp,rs,curto(sp.per.rot),curto(sp.prev.rot)):"")}
  const R=calcular(sp);let h="",big="",sub="";const ml=METL[sp.met],E=sp.ent?ENT[sp.ent]:null;
- if(sp.modo==="total"){const c=R.A.total,p=R.B.total,d=c-p;big=V(sp,c);sub=ml+" no período"+(sp.prev?" · "+(p||c?(d>0?"+":"")+V(sp,d)+" ("+pct(c,p)+") vs. "+V(sp,p)+" no período anterior":"sem movimento nos períodos"):"")}
+ if(sp.modo==="total"){const c=R.A.total,p=R.B.total,d=c-p;big=V(sp,c);sub="Foram "+V(sp,c)+" "+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+(sp.prev?(p||c?", "+(d>0?"+":"")+V(sp,d)+" ("+pct(c,p)+") em relação a "+V(sp,p)+" em "+esc(curto(sp.prev.rot)):", sem movimento nos dois períodos"):"")+"."}
  else if(sp.modo==="movers"){
   const pop=R.rows.filter(r=>r.c>0||r.p>0),mv=pop.filter(r=>sp.dir==="up"?r.c>r.p:r.c<r.p).sort((x,y)=>sp.dir==="up"?y.d-x.d||y.c-x.c:x.d-y.d||y.p-x.p),ig=pop.filter(r=>r.c===r.p).length,op=pop.filter(r=>sp.dir==="up"?r.c<r.p:r.c>r.p).length;
-  big=fmt(mv.length);sub=E.p+" "+(sp.dir==="up"?"aumentaram":"diminuíram")+" "+ml+" · de "+pop.length+" "+E.p+" com "+ml+" em algum dos dois períodos ("+ig+" ficaram iguais, "+op+" "+(sp.dir==="up"?"caíram":"subiram")+")";
+  big=fmt(mv.length);sub=(mv.length?fmt(mv.length)+" "+art(E,mv.length)+" "+(sp.dir==="up"?(mv.length===1?"aumentou":"aumentaram"):(mv.length===1?"diminuiu":"diminuíram"))+" "+ml+" "+esc(emp(sp.per.rot))+" em relação a "+esc(curto(sp.prev.rot))+esc(filt(sp))+": "+esc(mv.slice(0,6).map(r=>r.n+" ("+(r.d>0?"+":"")+V(sp,r.d)+")").join(", "))+(mv.length>6?" e mais "+(mv.length-6):"")+".":"Nenhum"+(E.g==="a"?"a ":" ")+E.s+" "+(sp.dir==="up"?"aumentou":"diminuiu")+" "+ml+" "+esc(emp(sp.per.rot))+" em relação a "+esc(curto(sp.prev.rot))+esc(filt(sp))+".")+'<div class="amut" style="margin-top:6px">De '+pop.length+" "+E.p+" com "+ml+" em algum dos dois períodos: "+ig+" ficaram iguais e "+op+" "+(sp.dir==="up"?"caíram":"subiram")+".</div>";
   h=mv.length?tabela(sp,mv):"";if(!R.A.total)h+='<div class="amut">Não há nenhum registro de '+ml+" no período atual ("+sp.per.rot+"), por isso ninguém aparece como aumento.</div>"}
  else if(sp.modo==="count"||sp.modo==="list"){
-  const pos=R.rows.filter(r=>r.c>=(sp.min||1)).sort((x,y)=>y.c-x.c);big=fmt(pos.length);sub=E.p+" com "+ml+" no período";h=tabela(sp,pos)}
+  const pos=R.rows.filter(r=>r.c>=(sp.min||1)).sort((x,y)=>y.c-x.c);big=fmt(pos.length);sub=(pos.length?fmt(pos.length)+" "+art(E,pos.length)+(pos.length===1?" teve ":" tiveram ")+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+(sp.min>1?" (pelo menos "+sp.min+")":"")+": "+esc(quem(sp,pos,6))+".":"Nenhum"+(E.g==="a"?"a ":" ")+E.s+" teve "+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+".");h=tabela(sp,pos,true)}
  else if(sp.modo==="rank"){
   const pos=R.rows.filter(r=>sp.asc?(r.c>0||r.p>0):r.c>=(sp.min||1)).sort((x,y)=>sp.asc?x.c-y.c:y.c-x.c).slice(0,sp.top);
-  if(pos.length){big=esc(pos[0].n);sub=(sp.asc?"menor":"maior")+" resultado em "+ml+": "+V(sp,pos[0].c)+(sp.top>1?" · top "+pos.length+" abaixo":"")}
-  else{big="—";sub="sem "+ml+" no período"}h=pos.length?tabela(sp,pos):""}
- else{const rs=R.rows.filter(r=>r.c>0||r.p>0).sort((x,y)=>y.c-x.c);big=V(sp,R.A.total);sub=ml+" no período, por "+E.s+" (total único)";h=tabela(sp,rs)}
+  if(pos.length){big=esc(pos[0].n);sub=cap(esc(emp(sp.per.rot)))+esc(filt(sp))+", "+esc(pos[0].n)+(sp.asc?" tem o menor resultado":" lidera")+" em "+ml+" com "+V(sp,pos[0].c)+(pos.length>1?"; depois "+esc(pos.slice(1,3).map(r=>r.n+" ("+V(sp,r.c)+")").join(" e "))+(pos.length>3?" e outros":""):"")+"."}
+  else{big="—";sub="Não houve "+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+"."}h=pos.length?tabela(sp,pos):""}
+ else{const rs=R.rows.filter(r=>r.c>0||r.p>0).sort((x,y)=>y.c-x.c);big=V(sp,R.A.total);sub="Foram "+V(sp,R.A.total)+" "+ml+" "+esc(emp(sp.per.rot))+esc(filt(sp))+", distribuídas por "+E.s+" na tabela.";h=tabela(sp,rs,!sp.prev)}
  if(!R.rows.length&&sp.ent&&!h)h='<div class="amut">Nenhum registro encontrado para esse recorte.</div>';
  return'<div class="abig">'+big+'</div><div class="asub">'+sub+"</div>"+chips(sp)+h}
 
@@ -965,6 +975,7 @@ async function run(t){
    r.innerHTML='<div class="asub">Interpretando a pergunta...</div>';let v2;
    try{v2=await viaIA(t)}catch(e){if(meu!==seq)return;regras();r.insertAdjacentHTML("beforeend",'<div class="amut">Sem resposta da IA ('+esc(e.message||e)+"): usei a interpretação por regras.</div>");return}
    if(meu!==seq)return;
+   if(v2&&v2.comparar&&v2.entidade&&!["conjunto","variacao"].includes(v2.modo)&&/\b(nao|sem|nenhum\w*|nunca)\b/.test(norm(t))){v2.modo="conjunto";v2.conjunto=v2.conjunto||"so_no_periodo"}
    let sp;try{sp=v2ToSp(v2)}catch(e){regras();r.insertAdjacentHTML("beforeend",'<div class="amut">A IA devolveu uma consulta inválida ('+esc(e.message)+"): usei a interpretação por regras.</div>");return}
    if(sp.recusa){r.innerHTML='<div class="asub">'+esc(sp.recusa)+"</div>";return}
    mostrar(sp,r);return}
