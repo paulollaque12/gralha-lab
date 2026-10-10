@@ -216,6 +216,7 @@ function v2ToSp(v){
 /* ---------- interface ---------- */
 const EX=["Quantos corretores aumentaram vendas nos últimos 7 dias?","Quais equipes mais venderam este mês?","Quantos agenciamentos tivemos em setembro?","Quais corretores diminuíram visitas esta semana?","Qual veículo trouxe mais vendas este ano?","Vendas da equipe Meta este mês vs. mês passado"];
 function css(){const s=document.createElement("style");s.textContent=`
+.iaw{color:var(--br);font-weight:800}
 #ask{margin:0;padding:16px 20px 18px}
 #ask h2{margin:0 0 4px;font-size:15px;color:var(--ink)}#ask .beta{font-size:8px}
 #ask .asb{margin:0 0 12px;color:var(--mut);font-size:13px;line-height:1.5}
@@ -236,7 +237,7 @@ function css(){const s=document.createElement("style");s.textContent=`
 function ui(){
  const root=document.getElementById("askroot"),nav=document.querySelector(".tabs");if(document.getElementById("ask")||(!root&&!nav))return;css();
  const d=document.createElement("div");d.id="ask";d.className="panel";
- d.innerHTML='<h2>'+esc(NAME)+'<span class="beta">BETA</span></h2><p class="asb">Pergunte em português sobre o funil, vendas, agenciamentos ou placas. A resposta é calculada nos dados do próprio dashboard e mostra como a pergunta foi entendida.</p><form id="askf" autocomplete="off"><input type="text" id="askq" aria-label="Pergunta" placeholder="Carregando dados..." disabled><button class="gh" type="submit" id="askb" disabled>Perguntar</button></form><div class="ex" id="askex"></div><div class="res" id="askr" hidden aria-live="polite"></div>';
+ d.innerHTML='<h2>'+esc(NAME).replace("IA",'<span class="iaw">IA</span>')+'<span class="beta">BETA</span></h2><p class="asb">O assistente de dados da CreativeImob. Pergunte em português sobre o funil, vendas, agenciamentos ou placas. A resposta é calculada nos dados do próprio dashboard e mostra como a pergunta foi entendida.</p><form id="askf" autocomplete="off"><input type="text" id="askq" aria-label="Pergunta" placeholder="Carregando dados..." disabled><button class="gh" type="submit" id="askb" disabled>Perguntar</button></form><div class="ex" id="askex"></div><div class="res" id="askr" hidden aria-live="polite"></div>';
  if(root)root.appendChild(d);else nav.parentNode.insertBefore(d,nav);
  const tb=document.getElementById("tab-ask");if(tb)tb.addEventListener("click",()=>{const h=document.getElementById("hctl"),g=document.getElementById("gfb");if(h)h.hidden=true;if(g)g.hidden=true});
  const ex=document.getElementById("askex");EX.forEach(t=>{const b=document.createElement("button");b.type="button";b.textContent=t;b.onclick=()=>{document.getElementById("askq").value=t;run(t)};ex.appendChild(b)});

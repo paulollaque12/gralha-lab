@@ -11,7 +11,7 @@ nf = os.path.join(R, "tools", "nome.txt")
 nome = open(nf, encoding="utf-8").read().strip() if os.path.exists(nf) else "Assistente"
 ins = re.search(r'<button role="tab" id="tab-ins".*?</button>', h, re.S).group(0)
 svg = re.search(r'<svg class="ai".*?</svg>', ins, re.S).group(0)
-tab = '<button role="tab" id="tab-ask" data-tab="ask" aria-selected="false" aria-controls="panel-ask">' + svg + nome + '<span class="beta">BETA</span></button>'
+tab = '<button role="tab" id="tab-ask" data-tab="ask" aria-selected="false" aria-controls="panel-ask">' + svg + nome.replace('IA', '<span class="iaw">IA</span>') + '<span class="beta">BETA</span></button>'
 h, n = re.subn(r'(<button role="tab" id="tab-daily".*?</button>)', lambda m: m.group(1) + tab, h, count=1, flags=re.S); assert n == 1
 assert h.count('<section id="panel-ins"') == 1
 h = h.replace('<section id="panel-ins"', '<section id="panel-ask" role="tabpanel" aria-labelledby="tab-ask" hidden><div id="askroot"></div></section>\n<section id="panel-ins"', 1)
