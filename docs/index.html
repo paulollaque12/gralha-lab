@@ -786,6 +786,7 @@ function periodo(q){
  if((m=/(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\s*(?:a|ate|ao|-)\s*(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/.exec(q))){
   const y0=+(ymd(ULT)[0]),Y=s=>s?(s.length===2?2000+ +s:+s):y0;const a=dIdx(Y(m[3]),+m[2]-1,+m[1]),b=dIdx(Y(m[6]),+m[5]-1,+m[4]);if(b>=a)return{a,b,tipo:"x",rot:br(a)+" a "+br(b)}}
  if((m=/\bdia (\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/.exec(q))){const y=m[3]?(m[3].length===2?2000+ +m[3]:+m[3]):ymd(ULT)[0],a=dIdx(y,+m[2]-1,+m[1]);return{a,b:a,tipo:"x",rot:brY(a)}}
+ if((m=/\bultim[oa]s? (\d{1,2}|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze) mes(?:es)?\b/.exec(q))){const W={dois:2,duas:2,tres:3,quatro:4,cinco:5,seis:6,sete:7,oito:8,nove:9,dez:10,onze:11,doze:12},n=Math.min(12,Math.max(1,+m[1]||W[m[1]])),[y,mo]=ymd(ULT);let yy=y,mm=mo-(n-1);while(mm<0){mm+=12;yy--}const a=Math.max(monthStart(yy,mm),dIdx(2026,0,1));return{a,b:ULT,tipo:"x",rot:"últimos "+n+" meses ("+br(a)+" a "+br(ULT)+")",nota:n>1?"últimos "+n+" meses = mês atual + "+(n-1)+" anteriores":""}}
  if((m=/ultim[oa]s? (\d+) (dias?|semanas?)/.exec(q))){const n=+m[1]*(m[2][0]==="s"?7:1);return{a:ULT-n+1,b:ULT,tipo:"x",rot:"últimos "+n+" dias ("+br(ULT-n+1)+" a "+br(ULT)+")"}}
  if(/\bultima semana\b|\bultimos 7 dias\b/.test(q))return{a:ULT-6,b:ULT,tipo:"x",rot:"últimos 7 dias ("+br(ULT-6)+" a "+br(ULT)+")"};
  if(/\bsemana (passada|anterior)\b|\bsemana pasada\b/.test(q)){const s=wkStart(ULT)-7;return{a:s,b:s+6,tipo:"sem",rot:"semana passada ("+br(s)+" a "+br(s+6)+")"}}
@@ -818,6 +819,7 @@ function interpretar(raw){
  if(!per){per=periodo(q);}
  if(cmp.length>1){const p2=periodo(cmp[1]);if(p2)prev={a:p2.a,b:p2.b,rot:p2.rot}}
  if(!per){const[y,mo]=ymd(ULT);per={a:monthStart(y,mo),b:ULT,tipo:"mtd",rot:"este mês ("+br(monthStart(y,mo))+" a "+br(ULT)+")"};pAssum=true;assum.push("período: este mês")}
+ if(per.nota)assum.push(per.nota);
  if(!prev)prev=ant(per);
  if(!prev&&dir)prev={a:per.a-(per.b-per.a+1),b:per.a-1,rot:"período anterior"};
  const{F,found}=filtros(q);
