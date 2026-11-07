@@ -769,7 +769,8 @@ const fmt=v=>Math.round(v).toLocaleString("pt-BR");
 const fmtV=v=>{const a=Math.abs(v);return a>=1e6?"R$ "+(v/1e6).toLocaleString("pt-BR",{maximumFractionDigits:2})+" Mi":a>=1e3?"R$ "+Math.round(v/1e3).toLocaleString("pt-BR")+" mil":"R$ "+Math.round(v).toLocaleString("pt-BR")};
 const METN={0:"Captação (leads)",1:"Oportunidades",2:"Visitas",3:"Propostas",4:"Fechamentos",5:"Vendas",8:"Agenciamentos",9:"Placas",vgv:"VGV"};
 const METL={0:"leads",1:"oportunidades",2:"visitas",3:"propostas",4:"fechamentos",5:"vendas",8:"agenciamentos",9:"placas",vgv:"VGV"};
-const ENT={corretor:{col:5,s:"corretor",p:"corretores",g:"o"},equipe:{col:4,s:"equipe",p:"equipes",g:"a"},loja:{col:3,s:"loja",p:"lojas",g:"a"},veiculo:{col:6,s:"veículo",p:"veículos",g:"o"},bairro:{col:7,s:"bairro",p:"bairros",g:"o"}};
+const ENT={corretor:{col:5,s:"corretor",p:"corretores",g:"o"},equipe:{col:4,s:"equipe",p:"equipes",g:"a"},loja:{col:3,s:"loja",p:"lojas",g:"a"},veiculo:{col:6,s:"veículo",p:"veículos",g:"o"},bairro:{col:7,s:"bairro",p:"bairros",g:"o"},tipo:{col:8,s:"tipologia",p:"tipologias",g:"a",im:1},cond:{col:9,s:"condomínio",p:"condomínios",g:"o",im:1},lanc:{col:10,s:"lançamento",p:"lançamentos",g:"o",im:1},dorm:{col:12,s:"nº de dormitórios",p:"nºs de dormitórios",g:"o",im:1},cod:{col:11,s:"imóvel",p:"imóveis",g:"o",im:1}};
+const IMMET={0:"parcial",2:1,3:1,5:1,vgv:1}; /* dimensões do imóvel só existem em visitas, propostas, vendas/VGV e em parte dos leads */
 const MESES=["janeiro","fevereiro","marco","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"],MESN=["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
 let C=null,ULT=0,NAMES=null;
 const ENDPOINT=(v=>v.startsWith("__")?"":v)("https://gralha-ask.paulo-cb2.workers.dev/");
@@ -787,10 +788,12 @@ function metrica(q){
  if(/\bvend(a|as|eu|eram|er|emos|ido|idos)\b|\bvendi/.test(q))return 5;
  if(/\blead|captac|\bcadastr/.test(q))return 0;
  return null}
+const ENTW="corretor(?:es)?|equipes?|lojas?|agencias?|veiculos?|bairros?|tipologias?|tipos? d[eoa]s? imove(?:l|is)|tipos? de imovel|condominios?|empreendimentos?|lancamentos?|dormitorios?|quartos?|imove(?:l|is)(?! captad)";
+const entKey=w=>w.startsWith("corretor")?"corretor":w.startsWith("equipe")?"equipe":w.startsWith("loja")||w.startsWith("agencia")?"loja":w.startsWith("veiculo")?"veiculo":w.startsWith("bairro")?"bairro":w.startsWith("tipologia")||w.startsWith("tipo")?"tipo":w.startsWith("condominio")||w.startsWith("empreendimento")?"cond":w.startsWith("lancamento")?"lanc":w.startsWith("dormitorio")||w.startsWith("quarto")?"dorm":"cod";
 function entidade(q){
- let m=/\b(?:quantos|quantas|quais|quem|qual|ranking de|ranking dos|ranking das|top\s*\d*(?: de| dos| das)?|melhores|maiores|piores|menores)\s+(?:os |as |o |a )?(corretor(?:es)?|equipes?|lojas?|agencias?|veiculos?|bairros?)\b/.exec(q)||/\bpor\s+(corretor|equipe|loja|agencia|veiculo|bairro)\b/.exec(q);
- if(!m)m=/\b(corretores|equipes|lojas|veiculos|bairros)\b/.exec(q);
- if(!m)return null;const w=m[1];return w.startsWith("corretor")?"corretor":w.startsWith("equipe")?"equipe":w.startsWith("loja")||w.startsWith("agencia")?"loja":w.startsWith("veiculo")?"veiculo":"bairro"}
+ let m=new RegExp("\\b(?:quantos|quantas|quais|quem|qual|ranking de|ranking dos|ranking das|top\\s*\\d*(?: de| dos| das)?|melhores|maiores|piores|menores|melhor|maior|pior|menor)\\s+(?:os |as |o |a )?("+ENTW+")\\b").exec(q)||new RegExp("\\bpor\\s+("+ENTW+")\\b").exec(q);
+ if(!m)m=/\b(corretores|equipes|lojas|veiculos|bairros|tipologias|condominios|empreendimentos|lancamentos|dormitorios|imoveis)\b/.exec(q);
+ if(!m)return null;return entKey(m[1])}
 function nomes(){
  if(NAMES)return NAMES;NAMES={};
  for(const k of Object.keys(ENT)){const L=C.dict[k]||[];NAMES[k]=L.map((n,i)=>({i,n,q:norm(n)})).filter(o=>o.q.length>=2)}
@@ -801,7 +804,11 @@ function filtros(q){
  N.equipe.forEach(o=>{if(txt.includes(" "+o.q+" ")||txt.includes(" equipe "+o.q.replace(/^equipe /,"")+" "))add("equipe",o)});
  N.loja.forEach(o=>{const b=o.q.replace(/^agencia /,"");if(txt.includes(" "+o.q+" ")||new RegExp("\\b(?:loja|agencia)(?: d[eoa]s?| n[oa])? "+b.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(q))add("loja",o)});
  N.corretor.forEach(o=>{if(/^(equipe|agencia) /.test(o.q))return;const t=o.q.split(" ");const two=t.slice(0,2).join(" ");if(txt.includes(" "+o.q+" ")||(t.length>=2&&two.length>=7&&txt.includes(" "+two+" ")))add("corretor",o)});
- [["veiculo","(?:veiculo|canal|origem)(?: de captacao)?"],["bairro","bairro"]].forEach(([dim,pre])=>N[dim].forEach(o=>{if(new RegExp("\\b"+pre+"(?: (?:d[eoa]s?|n[oa]s?|em|pel[oa]))? "+o.q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(q))add(dim,o)}));
+ [["veiculo","(?:veiculo|canal|origem)(?: de captacao)?"],["bairro","bairro"],["tipo","(?:tipo|tipologia)(?: d[eoa]s?)?(?: imovel)?"],["cond","(?:condominio|empreendimento)"]].forEach(([dim,pre])=>N[dim].forEach(o=>{if(new RegExp("\\b"+pre+"(?: (?:d[eoa]s?|n[oa]s?|em|pel[oa]))? "+o.q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"\\b").test(q))add(dim,o)}));
+ N.tipo.forEach(o=>{if(o.q==="loja"||found.some(f=>f[0]==="tipo"&&f[1]===o.n))return;const e=o.q.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),w=o.q.split(" ")[0];
+  if(new RegExp("\\b(?:d[eoa]s?|em|n[oa]s?|so|apenas)\\s+"+e+"(?:s|es)?\\b").test(q)||(o.q.includes(" ")&&new RegExp("\\b(?:d[eoa]s?|em|n[oa]s?|so|apenas)\\s+"+w+"(?:s|es)?\\b").test(q)&&!/\b(?:tipologia|tipo)\\b/.test(q.replace(w,""))))add("tipo",o)});
+ {const mm=/\b(\d{1,2})\s*(?:dormitorios?|quartos?|dorms?)\b/.exec(q);if(mm){const i=(C.dict.dorm||[]).indexOf(mm[1]);if(i>=0)add("dorm",{i,n:mm[1]+" dormitório"+(mm[1]==="1"?"":"s")})}
+  if(/\b(?:so |apenas )?lancamentos?\b/.test(q)&&!/\bpor lancamento/.test(q)){const i=(C.dict.lanc||[]).indexOf("Sim");if(i>=0)add("lanc",{i,n:"lançamentos"})}}
  return{F,found}}
 function ant(per){ // período anterior padrão
  const len=per.b-per.a+1;
@@ -868,7 +875,7 @@ function agg(sp,a,b){
   else{if(!s){s=new Set();per.set(k,s)}s.add(r[2]);all.add(r[2])}}
  const val=s=>{if(!vgv)return s.size;let t=0;s.forEach(v=>t+=v);return t};
  const out=new Map();per.forEach((s,k)=>out.set(k,val(s)));return{map:out,total:val(all)}}
-const nm=(sp,k)=>{const n=C.dict[sp.ent][k];return n||"(sem "+ENT[sp.ent].s+")"};
+const nm=(sp,k)=>{const n=C.dict[sp.ent][k];if(sp.ent==="dorm"&&n!==""&&n!=null)return n+(n==="1"?" dormitório":" dormitórios");if(sp.ent==="lanc"&&n)return n==="Sim"?"Lançamento":"Pronto/usado";return n||"(sem "+ENT[sp.ent].s+")"};
 const V=(sp,v)=>sp.met==="vgv"?fmtV(v):fmt(v);
 
 function calcular(sp){
@@ -890,6 +897,7 @@ function chips(sp){
  if(sp.ent)c.push("por "+ENT[sp.ent].s);c.push(sp.per.rot);if(sp.prev)c.push("vs. "+sp.prev.rot+" ("+br(sp.prev.a)+" a "+br(sp.prev.b)+")");
  sp.found.forEach(([d,n])=>c.push("filtro: "+n));
  if(sp.dir)c.push(sp.dir==="up"?"só quem aumentou":"só quem diminuiu");
+ if(sp.ent&&ENT[sp.ent].im&&IMMET[sp.met]!==1)sp.assum=sp.assum.concat([IMMET[sp.met]==="parcial"?"a dimensão do imóvel só existe para parte dos leads":"a dimensão do imóvel (tipologia, condomínio, dormitórios) só existe para visitas, propostas, vendas e VGV; para esta métrica o resultado fica sem classificação"]);
  return '<div class="achips">Entendi assim: '+c.map(x=>"<span>"+esc(x)+"</span>").join("")+"</div>"+(sp.ia&&sp.entendi?'<div class="amut">'+esc(sp.entendi)+"</div>":"")+(sp.assum.length?'<div class="amut">Assumi: '+esc(sp.assum.join(" · "))+".</div>":"")}
 function tab2(sp,rs,h1,h2){const lim=15;let h='<div class="atw"><table class="at"><thead><tr><th>'+esc(ENT[sp.ent].s[0].toUpperCase()+ENT[sp.ent].s.slice(1))+"</th><th>"+hd(sp.per)+"</th><th>"+hd(sp.prev)+"</th></tr></thead><tbody>";rs.slice(0,lim).forEach(r=>{h+="<tr><td>"+esc(r.n)+"</td><td>"+V(sp,r.c)+"</td><td>"+V(sp,r.p)+"</td></tr>"});h+="</tbody></table></div>";if(rs.length>lim)h+='<div class="amut">e mais '+(rs.length-lim)+" na lista.</div>";return h}
 const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
@@ -931,7 +939,7 @@ function ancoras(){
  for(let i=0;i<=mo;i++)meses[MESN[i]+" de "+y]={a:iso(monthStart(y,i)),b:iso(Math.min(monthEnd(y,i),ULT))};
  return{ultimo_dia:iso(ULT),dia_da_semana:["domingo","segunda","terça","quarta","quinta","sexta","sábado"][new Date(D0+ULT*864e5).getUTCDay()],inicio_dos_dados:iso(dIdx(2026,0,1)),
   semana_atual:{a:iso(ws),b:iso(ULT)},semana_passada:{a:iso(ws-7),b:iso(ws-1)},mes_atual:{a:iso(monthStart(y,mo)),b:iso(ULT)},mes_passado:{a:iso(monthStart(py,pm)),b:iso(monthEnd(py,pm))},ano_ate_agora:{a:iso(monthStart(y,0)),b:iso(ULT)},meses}}
-function listas(){const u=k=>(C.dict[k]||[]).filter(Boolean);return{equipes:u("equipe"),lojas:u("loja"),veiculos:u("veiculo")}}
+function listas(){const u=k=>(C.dict[k]||[]).filter(Boolean);return{equipes:u("equipe"),lojas:u("loja"),veiculos:u("veiculo"),tipologias:u("tipo")}}
 async function viaIA(t){
  const c=new AbortController(),to=setTimeout(()=>c.abort(),15000);
  try{const r=await fetch(ENDPOINT,{method:"POST",signal:c.signal,headers:{"content-type":"application/json","x-acesso":C.askToken||""},body:JSON.stringify({pergunta:t,contexto:{ancoras:ancoras(),listas:listas()}})});
@@ -1016,7 +1024,7 @@ async function run(t){
    if(meu!==seq)return;
    if(v2&&v2.comparar&&v2.entidade&&!["conjunto","variacao"].includes(v2.modo)&&/\b(nao|sem|nenhum\w*|nunca)\b/.test(norm(t))){v2.modo="conjunto";v2.conjunto=v2.conjunto||"so_no_periodo"}
    let sp;try{sp=v2ToSp(v2)}catch(e){regras();r.insertAdjacentHTML("beforeend",'<div class="amut">A IA devolveu uma consulta inválida ('+esc(e.message)+"): usei a interpretação por regras.</div>");return}
-   if(sp.recusa){r.innerHTML='<div class="asub">'+esc(sp.recusa)+"</div>";return}
+   if(sp.recusa){const rg=interpretar(t);if(rg&&rg.modo!=="nao_entendi"&&rg.ent&&ENT[rg.ent].im){mostrar(rg,r);return}r.innerHTML='<div class="asub">'+esc(sp.recusa)+"</div>";return}
    mostrar(sp,r);return}
   regras()}
  catch(e){console.error(e);r.innerHTML='<div class="asub">Não consegui calcular essa pergunta ('+esc(e.message||e)+").</div>"}}

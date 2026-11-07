@@ -7,7 +7,7 @@ const SISTEMA = `Voce traduz perguntas em portugues (ou espanhol) sobre o dashbo
 
 DADOS: eventos de funil de clientes por corretor/equipe/loja. Metricas (todas = clientes unicos no periodo, exceto vgv):
 - leads (a etapa chamada "Captacao" do funil), oportunidades, visitas, propostas, fechamentos, vendas, agenciamentos (imoveis captados), placas, vgv (valor das vendas em R$).
-Entidades para agrupar: corretor, equipe, loja, veiculo (veiculo de captacao), bairro. Sem entidade = total geral.
+Entidades para agrupar: corretor, equipe, loja, veiculo (veiculo de captacao), bairro, tipo (TIPOLOGIA do imovel: Apartamento, Casa Residencial, Terreno, Cobertura, Estudio, Duplex...), cond (condominio/empreendimento), lanc (lancamento sim/nao), dorm (numero de dormitorios), cod (imovel pelo codigo). As dimensoes do imovel (tipo, cond, lanc, dorm, cod) so existem para visitas, propostas, vendas e vgv (e parte dos leads); "melhor tipologia" sem metrica = vendas. Sem entidade = total geral.
 Datas: use SEMPRE datas ISO absolutas (AAAA-MM-DD) em a/b, partindo do contexto.ancoras fornecido (ultimo_dia e o ultimo dia com dados; nao existe "hoje" nos dados: hoje/ontem = ultimo_dia). "Ultimos N dias" = ultimo_dia-(N-1) ate ultimo_dia. "Esta semana"/"este mes" = ancoras.semana_atual / mes_atual. "Semana passada"/"mes passado" e meses por nome: use as ancoras. Preencha "rotulo" com um nome curto do periodo (ex.: "ultimos 7 dias").
 MODOS:
 - total: um numero (e, se houver "comparar", a variacao).
@@ -16,7 +16,7 @@ MODOS:
 - lista: quais entidades tem valor > 0 (ou >= minimo). Exige entidade.
 - variacao: compara periodo x comparar por entidade. direcao "aumentou" (valor atual > anterior), "diminuiu" (<), ou null para mostrar todos. SEMPRE preencha "comparar": se o usuario nao disser, use o periodo anterior de mesmo tamanho imediatamente antes (mes parcial: mesmo recorte do mes anterior; semana parcial: mesmos dias da semana anterior).
 - conjunto: entidades que tem valor no "periodo" e NAO tem em "comparar" (conjunto="so_no_periodo"), o inverso ("so_na_comparacao"), ou que tem nos dois ("em_ambos"). Ex.: "tiveram vendas mes passado e nao tem neste mes" => periodo=mes passado, comparar=este mes, conjunto="so_no_periodo".
-FILTROS: nomes de equipe/loja/veiculo devem ser copiados EXATAMENTE de contexto.listas; corretor e bairro, escreva o nome como o usuario disse. Se o usuario pedir algo que os dados nao tem (clientes por nome, telefone, previsoes, causas, "por que"), preencha nao_suportado com o motivo curto em portugues e deixe o resto minimo. Em "entendi" escreva em uma frase como voce entendeu a pergunta (portugues).`;
+FILTROS: nomes de equipe/loja/veiculo/tipo (tipologia) devem ser copiados EXATAMENTE de contexto.listas (equipes, lojas, veiculos, tipologias); corretor, bairro e cond, escreva o nome como o usuario disse. Se o usuario pedir algo que os dados nao tem (clientes por nome, telefone, previsoes, causas, "por que"), preencha nao_suportado com o motivo curto em portugues e deixe o resto minimo. Em "entendi" escreva em uma frase como voce entendeu a pergunta (portugues).`;
 
 const FERRAMENTA = {
   name: "consulta",
@@ -25,13 +25,13 @@ const FERRAMENTA = {
     type: "object",
     properties: {
       metrica: { type: "string", enum: ["leads", "oportunidades", "visitas", "propostas", "fechamentos", "vendas", "agenciamentos", "placas", "vgv"] },
-      entidade: { type: ["string", "null"], enum: ["corretor", "equipe", "loja", "veiculo", "bairro", null] },
+      entidade: { type: ["string", "null"], enum: ["corretor", "equipe", "loja", "veiculo", "bairro", "tipo", "cond", "lanc", "dorm", "cod", null] },
       modo: { type: "string", enum: ["total", "ranking", "contagem", "lista", "variacao", "conjunto"] },
       periodo: { type: "object", properties: { a: { type: "string" }, b: { type: "string" }, rotulo: { type: "string" } }, required: ["a", "b"] },
       comparar: { type: ["object", "null"], properties: { a: { type: "string" }, b: { type: "string" }, rotulo: { type: "string" } } },
       direcao: { type: ["string", "null"], enum: ["aumentou", "diminuiu", null] },
       conjunto: { type: ["string", "null"], enum: ["so_no_periodo", "so_na_comparacao", "em_ambos", null] },
-      filtros: { type: "object", properties: { equipe: { type: "array", items: { type: "string" } }, loja: { type: "array", items: { type: "string" } }, corretor: { type: "array", items: { type: "string" } }, veiculo: { type: "array", items: { type: "string" } }, bairro: { type: "array", items: { type: "string" } } } },
+      filtros: { type: "object", properties: { equipe: { type: "array", items: { type: "string" } }, loja: { type: "array", items: { type: "string" } }, corretor: { type: "array", items: { type: "string" } }, veiculo: { type: "array", items: { type: "string" } }, bairro: { type: "array", items: { type: "string" } }, tipo: { type: "array", items: { type: "string" } }, cond: { type: "array", items: { type: "string" } } } },
       top: { type: ["integer", "null"] },
       ordem: { type: ["string", "null"], enum: ["desc", "asc", null] },
       minimo: { type: ["integer", "null"] },
