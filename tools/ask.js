@@ -36,7 +36,7 @@ const ENTW="corretor(?:es)?|equipes?|lojas?|agencias?|veiculos?|bairros?|tipolog
 const entKey=w=>w.startsWith("corretor")?"corretor":w.startsWith("equipe")?"equipe":w.startsWith("loja")||w.startsWith("agencia")?"loja":w.startsWith("veiculo")?"veiculo":w.startsWith("bairro")?"bairro":w.startsWith("tipologia")||w.startsWith("tipo")?"tipo":w.startsWith("condominio")||w.startsWith("empreendimento")?"cond":w.startsWith("lancamento")?"lanc":w.startsWith("dormitorio")||w.startsWith("quarto")?"dorm":"cod";
 function entidade(q){
  let m=new RegExp("\\b(?:quantos|quantas|quais|quem|qual|ranking de|ranking dos|ranking das|top\\s*\\d*(?: de| dos| das)?|melhores|maiores|piores|menores|melhor|maior|pior|menor)\\s+(?:os |as |o |a )?("+ENTW+")\\b").exec(q)||new RegExp("\\bpor\\s+("+ENTW+")\\b").exec(q);
- if(!m)m=/\b(corretores|equipes|lojas|veiculos|bairros|tipologias|condominios|empreendimentos|lancamentos|dormitorios|imoveis)\b/.exec(q);
+ if(!m)m=/\b(corretores|equipes|lojas|veiculos|bairros|tipologias?|condominios?|empreendimentos?|lancamentos?|dormitorios?|imoveis)\b/.exec(q);
  if(!m)return null;return entKey(m[1])}
 function nomes(){
  if(NAMES)return NAMES;NAMES={};
